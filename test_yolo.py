@@ -1,11 +1,3 @@
-'''
-Author: abner
-Date: 2025-10-16 16:06:01
-LastEditTime: 2025-10-17 14:24:25
-Description: 
-FilePath: /Demo_1016/test_yolo.py
-'''
-
 from camera_test.camera_base import Camera
 
 import cv2
