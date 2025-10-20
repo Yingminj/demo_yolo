@@ -1,11 +1,3 @@
-'''
-Author: abner
-Date: 2025-10-16 16:06:01
-LastEditTime: 2025-10-17 15:03:10
-Description: 
-FilePath: /Demo_1016/main2.py
-'''
-
 from camera_test.camera_base import Camera
 
 import cv2
@@ -16,7 +8,7 @@ from ultralytics import YOLO
 import numpy as np
 from scipy.spatial import ConvexHull
 
-def fit_rotated_rect_from_mask(mask_points):
+def fit_rotated_rect_from_mask(mask_points): # mask process
     """
     从mask点云拟合旋转矩形，具有抗遮挡能力
     """
@@ -30,7 +22,7 @@ def fit_rotated_rect_from_mask(mask_points):
     
     return box, rect
 
-def order_points(pts):
+def order_points(pts): # process
     """
     排序四个点：左上、右上、右下、左上
     """
@@ -47,7 +39,7 @@ def order_points(pts):
     
     return rect
 
-def compute_grid_transform(mask_points, grid_rows=4, grid_cols=6):
+def compute_grid_transform(mask_points, grid_rows=4, grid_cols=6): # process
     """
     从mask点云计算网格变换矩阵
     
@@ -139,7 +131,7 @@ def visualize_grid_with_mask(frame, result, grid_status, grid_rows=4, grid_cols=
     
     return frame
 
-def get_object_grid_position(bbox, M, width, height, grid_rows=4, grid_cols=6):
+def get_object_grid_position(bbox, M, width, height, grid_rows=4, grid_cols=6): # process
     """
     计算物体在哪个网格中
     """
@@ -170,7 +162,7 @@ def get_object_grid_position(bbox, M, width, height, grid_rows=4, grid_cols=6):
     return None
 
 if __name__ == "__main__":
-    camera = Camera(device="/dev/video0", fps=60)
+    camera = Camera(device="/dev/video2", fps=60)
     yolo_model = YOLO("weight/best_seg.pt")
     if not os.path.exists("cap"):
         os.makedirs("cap")
