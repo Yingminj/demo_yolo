@@ -12,7 +12,7 @@ cap.set(cv2.CAP_PROP_FPS, 30)
 device = torch.device("cuda")
 
 # Load the model from huggingface hub (or load from local).
-model = MoGeModel.from_pretrained("Ruicheng/moge-2-vitl-normal").to(device)                             
+model = MoGeModel.from_pretrained("/home/kewei/.cache/huggingface/hub/models--Ruicheng--moge-2-vitl-normal/snapshots/b135031bae30b5ac2ae141a0e68717795ce38340/model.pt").to(device)                             
 
 ret, frame = cap.read()
 

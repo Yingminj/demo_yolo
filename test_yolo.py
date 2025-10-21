@@ -8,7 +8,7 @@ from ultralytics import YOLO
 
 if __name__ == "__main__":
     camera = Camera(device="/dev/video0", fps=60)
-    yolo_model = YOLO("weight/best_seg.pt")
+    yolo_model = YOLO("/home/kewei/YING/yolo_cube/runs/segment/train7/weights/best.pt")
     if not os.path.exists("cap"):
         os.makedirs("cap")
 

@@ -1,65 +1,51 @@
 import cv2
 import numpy as np
-
-def visualize_grid_with_mask(frame, result, grid_status, grid_rows=4, grid_cols=6): # table_grid
-
-    if result[0] is None:
-        return frame
-    
-    M, M_inv, corner_pts, width, height = result
-    
-    grid_width = width / grid_cols
-    grid_height = height / grid_rows
-    
-    # 绘制托盘轮廓
-    cv2.polylines(frame, [corner_pts.astype(np.int32)], True, (255, 255, 0), 2)
-    
-    # 绘制网格
-    for idx in range(grid_rows * grid_cols):
-        row = idx // grid_cols
-        col = idx % grid_cols
-        
-        # 网格角点（在标准化空间中）
-        grid_pts = np.array([
-            [col * grid_width, row * grid_height],
-            [(col + 1) * grid_width, row * grid_height],
-            [(col + 1) * grid_width, (row + 1) * grid_height],
-            [col * grid_width, (row + 1) * grid_height]
-        ], dtype=np.float32)
-        
-        # 变换回图像空间
-        transformed_pts = cv2.transform(grid_pts.reshape(1, -1, 2), M_inv)[0]
-        pts = transformed_pts.astype(np.int32)
-        
-        # 根据占用状态选择颜色
-        color = (0, 255, 0) if grid_status[idx] == 'free' else (0, 0, 255)
-        cv2.polylines(frame, [pts], True, color, 2)
-        
-        # 绘制网格编号
-        center_grid = np.mean(pts, axis=0).astype(int)
-        cv2.putText(frame, str(idx), (center_grid[0] - 10, center_grid[1] + 5), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-    
-    return frame
+from vis.projected import project_3d_box_to_head
 
 def draw_3d_box(image, corners, color=(255, 255, 0), thickness=1):
-    """
-    在图像上绘制3D框
-    
-    Args:
-        image: 输入图像
-        corners: 8个角点坐标 (8, 2)
-        color: 线条颜色
-        thickness: 线条粗细
-    """
-    # 绘制底面
+    """绘制3D框到图像"""
     for i in range(4):
         cv2.line(image, tuple(corners[i]), tuple(corners[(i+1)%4]), color, thickness)
-    
-    # 绘制顶面
-    for i in range(4, 8):
-        cv2.line(image, tuple(corners[i]), tuple(corners[4+(i+1)%4]), color, thickness)
-    
-    # 绘制竖直边
-    for i in range(4):
+        cv2.line(image, tuple(corners[i+4]), tuple(corners[4+(i+1)%4]), color, thickness)
         cv2.line(image, tuple(corners[i]), tuple(corners[i+4]), color, thickness)
+
+
+def process_objects(frame, results, top_matrix, head_matrix, rvec, tvec, assumed_depth, OBJECT_CONFIGS):
+    """处理检测到的物体并绘制3D框"""
+    if results.boxes is None or len(results.boxes) == 0:
+        return
+    
+    boxes = results.boxes.xyxy.cpu().numpy()
+    classes = results.boxes.cls.cpu().numpy()
+    
+    for box, cls in zip(boxes, classes):
+        class_name = results.names[int(cls)]
+        
+        if class_name not in OBJECT_CONFIGS:
+            continue
+        
+        config = OBJECT_CONFIGS[class_name]
+        center_x = (box[0] + box[2]) / 2
+        center_y = (box[1] + box[3]) / 2
+        
+        corners_3d = project_3d_box_to_head(
+            [center_x, center_y], config['size'], 
+            top_matrix, head_matrix, rvec, tvec, assumed_depth
+        )
+        
+        draw_3d_box(frame, corners_3d, config['color'], thickness=1)
+        
+        label_pos = tuple(corners_3d[4])
+        cv2.putText(frame, class_name, (int(label_pos[0]), int(label_pos[1])-10),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, config['color'], 1)
+        
+
+def draw_grids(frame, projected_grids):
+    """绘制网格到图像"""
+    for projected_points, status in projected_grids:
+        color = (0, 0, 255) if status == 'occ' else (0, 255, 0)
+        cv2.polylines(frame, [projected_points], isClosed=True, color=color, thickness=1)
+        
+        overlay = frame.copy()
+        cv2.fillPoly(overlay, [projected_points], color)
+        cv2.addWeighted(overlay, 0.2, frame, 0.8, 0, frame)
